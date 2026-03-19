@@ -1,0 +1,117 @@
+Actividad: Implementación de Piedra –
+Papel – Tijera usando GPIO
+Objetivo
+Desarrollar en lenguaje C un programa para el microcontrolador LPC1769 que implemente
+el juego Piedra, Papel o Tijera contra el microcontrolador utilizando entradas y salidas
+digitales. El programa deberá leer el estado de botones conectados a un puerto GPIO,
+determinar la jugada del usuario, generar una jugada para el microcontrolador y mostrar el
+resultado utilizando LEDs.
+
+Hardware utilizado
+Se utilizará un ú nico puerto GPIO para todas las entradas y salidas.
+
+Entradas
+Bit del puerto
+
+Funció n
+
+Px.0
+
+Piedra
+
+Px.1
+
+Papel
+
+Px.2
+
+Tijera
+
+Solo uno de los botones debe estar presionado por vez.
+
+Salidas
+Bit del puerto
+
+Funció n
+
+Px.4
+
+Empate
+
+Px.5
+
+Gana el jugador
+
+Px.6
+
+Gana el microcontrolador
+
+Funcionamiento del programa
+1. El microcontrolador debe permanecer en espera mientras los tres bits menos
+significativos del puerto se encuentren en el estado ló gico 0 0 0 (ningú n botó n presionado).
+2. Cuando el estado del puerto cambie a 001 (1), 010 (2) o 100 (4), se considerará que el
+usuario ha realizado una jugada vá lida.
+
+3. A partir de ese momento el programa debe determinar la jugada del usuario, generar la
+jugada del microcontrolador, determinar el resultado del juego y encender el LED
+correspondiente.
+4. Luego el sistema puede volver al estado de espera para aceptar una nueva jugada.
+
+Representación de las jugadas
+0 = Piedra
+1 = Papel
+2 = Tijera
+
+Matriz de resultados
+El resultado del juego debe calcularse utilizando una matriz resultado[jugador][cpu], donde
+1 indica que gana el jugador, 0 indica empate y -1 indica que gana el microcontrolador.
+int resultado[3][3] = {
+{ 0, -1, 1},
+{ 1, 0, -1},
+{-1, 1, 0}
+};
+
+Lectura del puerto e indexado
+Se deben leer los tres bits menos significativos del puerto GPIO.
+Ejemplo: entrada = LPC_GPIOx->FIOPIN & 0x07;
+El valor leído debe utilizarse como índice de un arreglo de mapeo.
+Ejemplo: int mapa[8] = { -1, 0, 1, -1, 2, -1, -1, -1 };
+El elemento 1, 2 y 4 son vá lidos, los demá s son entradas invá lidas.
+
+Salida por consola mediante semihosting
+Ademá s de indicar el resultado mediante LEDs, el programa deberá utilizar semihosting
+para imprimir informació n en la consola del entorno de desarrollo.
+En cada jugada vá lida el programa deberá mostrar:
+- la jugada ingresada por el usuario
+- la jugada generada por el microcontrolador
+- el resultado de la ronda
+No es necesario implementar un sistema de puntaje ni almacenar resultados previos. El
+programa solo debe informar el resultado de la jugada actual.
+
+Conceptos involucrados
+Manipulació n de puertos GPIO
+Uso de má scaras de bits
+Lectura de registros de hardware
+Uso de arreglos (arrays)
+Uso de matrices
+Indexado de arreglos mediante valores provenientes del hardware
+Ló gica de control bá sica en lenguaje C
+Relació n entre hardware y estructuras de datos en software
+Uso de semihosting para depuració n
+
+Requisitos
+El programa debe estar escrito en lenguaje C.
+Utilizar las estructuras definidas en lpc17xx.h.
+Leer las entradas desde un puerto GPIO.
+Mantenerse en estado de espera mientras el puerto sea 0.
+Validar jugadas cuando el puerto tome los valores 1, 2 o 4.
+Utilizar una matriz de resultados para determinar el ganador.
+Utilizar un arreglo para mapear las entradas del puerto.
+Mostrar el resultado mediante LEDs.
+Implementar demoras por software utilizando bucles for.
+Utilizar semihosting para imprimir la jugada del usuario, la jugada del microcontrolador y el
+resultado.
+No almacenar puntajes ni historial de partidas.
+Ejecutarse continuamente dentro de un bucle principal while(1).
+
+
