@@ -1,0 +1,24 @@
+# Carpetas generadas por MCUXpresso
+Debug/
+Release/
+build/
+
+# Binarios y archivos de salida
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.o
+*.d
+*.a
+
+# Configuración del IDE
+.settings/
+.cproject
+.project
+*.launch
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
