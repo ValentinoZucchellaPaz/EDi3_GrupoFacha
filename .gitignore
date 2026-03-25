@@ -2,6 +2,25 @@
 Debug/
 Release/
 build/
+.mcuxpressoide_packages_support/
+cr_startup_lpc175x_6x.c
+crp.c
+CMSISv1p30_LPC17xx/
+CMSISv2p00_DSPLIB_CM3/
+CMSISv2p00_LPC17xx/
+.metadata/
+.idea/
+AzureRTOS_TAD_logs/
+FreeRTOS_TAD_logs/
+ZephyrRTOS_TAD_logs/
+
+
+# archivos de estudio y carpetas personales
+documentacion placa/
+*.pdf
+*.txt
+*.ppt
+*.pptx
 
 # Binarios y archivos de salida
 *.elf
