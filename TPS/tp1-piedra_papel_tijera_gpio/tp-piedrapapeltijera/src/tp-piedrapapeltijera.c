@@ -1,16 +1,19 @@
 /*
  * Estudiante:
  * Carrera:
- * Descripción: Este programa prende y apaga un led
- *              conectado al pin P0.22 de forma intermitente
+ * Descripción: Este programa simula un piedra papel o tijera entre el usuario y la maquina
+ * el usuario puede tocar 3 botones piedra (P0.0), papel (P0,1) y tijera (P0.2)
+ * para los botones ponerlos a vcc para tener un 1 (sin pulldown xq se activa por soft)
  *
+ * el resultado se muestra con 3 leds conectados a los puertos P0.7 (empate), P0.8 (gana jugador), P0.9 (gana maquina)
+ * Conectar leds a vcc y que hundan corriente al pin, se prenden con 0 en el pin
  */
 
 #include "LPC17xx.h"
 #include <stdio.h>
 #include <stdlib.h>
 
-void debounce(void);
+int debounce(void);
 void delay(int n);
 
 int main(void){
@@ -31,15 +34,18 @@ int main(void){
     // (solo se van a tener en cuenta esos indices y el valor de los leds corresponde a piedra papel o tijera como 0 1 2, el resto que no se toma en cuenta tienen -1)
     int mapa[8] = { -1, 0, 1, -1, 2, -1, -1, -1 };
 
+    // activo pulldown para entradas
+    LPC_PINCON->PINMODE0 |= 0x0000001F; // 0x0...011111 (pone 11, osea pulldown, los bit de los pines de P0.0, P0.1 y P0.2)
 
-    // no pongo como GPIO xq ya vienen asi
-	LPC_GPIO0->FIODIR &= ~(0x07);   // botones de entradas (bits 0-2)
-    LPC_GPIO0->FIODIR |=  (0x70);   // leds de salidas (bits 4-6) (EMPATE, GANA JUGADOR, GANA CPU)
+    // config entrada y salida (ya son gpio con el reset)
+	LPC_GPIO0->FIODIR &= ~((1<<0) | (1<<1) | (1<<2));   // botones de entradas (bits 0-2)
+    LPC_GPIO0->FIODIR |=  ((1<<7) | (1<<8) | (1<<9));   // leds de salidas (bits 7-9) (EMPATE, GANA JUGADOR, GANA CPU)
 
-    // semilla para random
+    // semilla para random - idea chat - preguntar
     srand(1234);
 
-
+    // pongo salida en 1 para apagar leds
+    LPC_GPIO0->FIOSET = ((1<<7) | (1<<8) | (1<<9));
 	while(1){
 
         // leo entrada
@@ -63,21 +69,21 @@ int main(void){
         // me fijo res en matriz, muestro en leds y luego semihost
         res = resultado[jugador][cpu];
 
-        LPC_GPIO0->FIOCLR = 0x70;
         if (res == 0) { // empate
-            LPC_GPIO0->FIOSET = (1<<4);
+            LPC_GPIO0->FIOCLR = (1<<7);
         } else if (res == 1) { // gana jugador
-            LPC_GPIO0->FIOSET = (1<<5);
+            LPC_GPIO0->FIOCLR = (1<<8);
         } else {
-            LPC_GPIO0->FIOSET = (1<<6); // gana cpu
+            LPC_GPIO0->FIOCLR = (1<<9); // gana cpu
         }
 
-        printf("Jugador: %d | CPU: %d | Resultado: %d\n", jugador, cpu, res);
+        // printf("Jugador: %d | CPU: %d | Resultado: %d\n", jugador, cpu, res);
 
         delay(200000);
 
         // vuelve a arrancar cuando se suelta boton, sino no
         while((LPC_GPIO0->FIOPIN & 0x07) != 0) {};
+        LPC_GPIO0->FIOSET = ((1<<7) | (1<<8) | (1<<9)); // apago leds
 	}
 
 	return 0;
@@ -87,8 +93,9 @@ void delay(int n) {
     for (volatile int i = 0; i < n; i++); // 6000000 recomendado largo
 }
 
-int debounce(){
-    // espero a tener 2 lecturas consecutivas luego de un delay para evitar rebotes
+int debounce(void) {
+    // leo pines de entrada y tomo valor del puerto
+	// espero a tener 2 lecturas consecutivas luego de un delay para evitar rebotes
     int e1, e2;
 
     do {
