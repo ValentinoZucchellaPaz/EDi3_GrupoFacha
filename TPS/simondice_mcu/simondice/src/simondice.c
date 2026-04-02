@@ -181,17 +181,32 @@ int main(void)
                    =========================================
                 */
 
-            		// DUDA: no verifico si se alcanzó MAX_SECUENCIA xq no deberia entrar aca si se adivino la ult ronda, esta bien?
-
-					longitud_secuencia++;
+            		//DUDA: no verifico si se alcanzó MAX_SECUENCIA xq no deberia entrar 
+                    //aca si se adivino la ult ronda, esta bien? -> Teoricamente lo maneja 
+                    //el estado de ronda superada, pero se agrega una comprobacion por posible
+                    //error
+                    
+                    //Por las dudas compruebo que que no se haya alcanzado el máximo de secuencia
+                    if(longitud_secuencia >= MAX_SECUENCIA) {
+                        estado_actual = ESTADO_VICTORIA;
+                        continue;
+                    } 
+                    
+                    //Genero valor pseudoaleatorio entre 0 y 3 para el nuevo paso de la secuencia
                     secuencia[longitud_secuencia] = ticks_ms % 4;
+
+                    //Actualizo la longitud de la secuencia
+                    longitud_secuencia++;                   
 
                     // reinicio variables de mostrar leds y de input de jugador
                     indice_mostrar = 0;
                     indice_jugador=0;
 
+                    
                     estado_actual = ESTADO_MOSTRAR_SECUENCIA;
                     subestado_mostrar = SUB_ENCENDER_LED;
+                    
+                    
                 break;
             }
 
@@ -208,50 +223,61 @@ int main(void)
                      ESTADO_ESPERAR_JUGADOR
                    ========================================= */
 
+                //Deshabilito lectura del usuario 
                 habilitar_lectura_usuario = 0;
-
+            }
             	switch (subestado_mostrar){
 					case SUB_ENCENDER_LED:
 					{
-						// seteo ref, prendo leds, me voy a esperar
-						referencia = ticks_ms;
-						led_encender(indice_mostrar);
+						//seteo ref, prendo leds, me voy a esperar
+						tiempo_referencia = ticks_ms;
+
+                        //Si pongo solo indice_mostrar, me va a prender el primer led de la secuencia, 
+                        //pero necesito prender el que corresponde al valor de la secuencia en esa posicion
+						led_encender(secuencia[indice_mostrar]);
 
 						subestado_mostrar = SUB_ESPERAR_LED_ON;
 						break;
 					}
 
+                    //Me quedo en este subestado hasta que se cumpla el tiempo de encendido del led
 					case SUB_ESPERAR_LED_ON:
 					{
-                        if (!tiempo_cumplido(tiempo_referencia, 1000)) continue;
-
-						subestado_mostrar=SUB_APAGAR_LED;
+                        if (tiempo_cumplido(tiempo_referencia, TIEMPO_LED_ON)) {
+                            subestado_mostrar = SUB_APAGAR_LED;
+                        };
 						break;
 					}
 
 					case SUB_APAGAR_LED:
 					{
-						referencia=ticks_ms;
-						led_apagar(indice_mostrar);
+                        //1. Apago el led que acabo de mostrar
+						led_apagar(secuencia[indice_mostrar]);
 
+                        //2. Seteo referencia para el tiempo entre leds
+                        tiempo_referencia=ticks_ms;
+
+                        //3. Paso al subestado de espera entre leds
 						subestado_mostrar=SUB_ESPERAR_LED_OFF;
 						break;
 					}
 
 					case SUB_ESPERAR_LED_OFF:
 					{
-						if (!tiempo_cumplido(tiempo_referencia, 300)) continue;
+                        //1. Espero el tiempo entre leds
+						if (tiempo_cumplido(tiempo_referencia, TIEMPO_LED_OFF)){
+                            indice_mostrar++;
+                        
+                            //2. Si me quedan leds por mostrar, vuelvo a encender otro led
+						    if (indice_mostrar < longitud_secuencia) { 
+							    subestado_mostrar=SUB_ENCENDER_LED;
+						    }else{
+                                // ya mostre el ultimo indice, saltar prox estado
+                                habilitar_lectura_usuario=1;
+                                estado_actual=ESTADO_ESPERAR_JUGADOR;
+                            }
+                        };
 
-
-						if (indice_mostrar < longitud_secuencia) { // me quedan indices por mostrar
-							indice_mostrar++;
-							subestado_mostrar=SUB_ENCENDER_LED;
-							continue;
-						}
-
-						// ya mostre el ultimo indice, saltar prox estado
-						habilitar_lectura_usuario=1;
-						estado_actual=ESTADO_ESPERAR_JUGADOR;
 						break;
 					}
 
@@ -260,8 +286,7 @@ int main(void)
 						subestado_mostrar = SUB_ENCENDER_LED;
 						break;
 					}
-				}
-
+                }
                 break;
             }
 
@@ -298,24 +323,27 @@ int main(void)
                         * indicar error
                         * pasar a GAME_OVER
                    ========================================= */
-            	if (boton_presionado == secuencia[indice_jugador]) { // acerto
-            		indice_jugador++;
-
-            		if (indice_jugador > longitud_secuencia){ // puso toda la secuencia bien, paso de ronda
-            			estado_actual=ESTADO_RONDA_SUPERADA;
-            			continue;
-            		} else { // falta partes de la sec->espero prox boton
-            			estado_actual=ESTADO_ESPERAR_JUGADOR;
-
-            			// reset de vars de esperar jugador
-            			evento_boton=0;
-            			boton_presionado=-1;
-            		}
-
-            	} else { // le erró -> game over
-            		error_jugada=1;
+            	if ((boton_presionado != secuencia[indice_jugador])) { // acerto
+            		
+                    error_jugada=1;
             		estado_actual=ESTADO_GAME_OVER;
-            	}
+                    continue;
+                }    
+                indice_jugador++;
+
+                // puso toda la secuencia bien, paso de ronda
+                if (indice_jugador > longitud_secuencia){ 
+                    estado_actual=ESTADO_RONDA_SUPERADA;
+                    continue;
+                } else { // falta partes de la sec->espero prox boton
+                    estado_actual=ESTADO_ESPERAR_JUGADOR;
+
+                    // reset de vars de esperar jugador
+                    evento_boton=0;
+                    boton_presionado=-1;
+                }
+
+            	
 
                 break;
             }
