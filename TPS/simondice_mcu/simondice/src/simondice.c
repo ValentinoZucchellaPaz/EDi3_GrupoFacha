@@ -77,6 +77,7 @@ uint8_t tiempo_cumplido(uint32_t referencia, uint32_t demora_ms);
 uint8_t boton_sigue_presionado(uint8_t boton);
 void demora_150ms(void);
 void systick_init(void);
+void delay_ms(uint32_t ms); // retardo bloqueante para antirebote de botones
 
 /* =========================
    VARIABLES DEL JUEGO
@@ -452,13 +453,37 @@ void EINT3_IRQHandler(void)
     LPC_GPIOINT->IO0IntClr = estado_p0;
 
     /* =========================================
-       COMPLETAR:
+       COMPLETAR: ✅
        - Detectar evento de inicio del juego
        - Ignorar pulsaciones si no está habilitada
          la lectura del usuario
        - Detectar qué botón fue presionado
        - Actualizar boton_presionado y evento_boton
        ========================================= */
+
+    //Antirrebote bloqueante
+    delay_ms(50);
+
+    if(estado_actual == ESTADO_IDLE){
+        evento_start = 1;                       //Si está en IDLE, inicio el juego
+        return;
+    } else if (habilitar_lectura_usuario == 1){    //Puedo leer botones?
+        evento_boton = 1;
+
+        //Detecto boton presionado
+        if (estado_p0 & BOTON_0) boton_presionado = 0;
+        else if (estado_p0 & BOTON_1) boton_presionado = 1;
+        else if (estado_p0 & BOTON_2) boton_presionado = 2;
+        else if (estado_p0 & BOTON_3) boton_presionado = 3;
+    }
+}
+
+//Retardo antirrebote
+void delay_ms(uint32_t ms)
+{
+    for (volatile uint32_t i = 0; i < ms; i++){
+        for (volatile uint32_t j = 0; j < 14000; j++);
+    }
 }
 
 /* =========================
