@@ -163,7 +163,7 @@ int main(void)
 
                 leds_apagar_todos();
 
-                // tmb apago leds de game over y victoria acá
+                // apago leds de placa (game over y victoria) YA QUE no lo hace leds_apagar_todos()
                 LPC_GPIO0->FIOSET |= (1<<22); // rojo
                 LPC_GPIO3->FIOSET |= (1<<25); // verde
 
@@ -173,31 +173,30 @@ int main(void)
 
             case ESTADO_GENERAR_PASO: {
                 /* =========================================
-                   COMPLETAR:
-                   - Generar un nuevo paso de la secuencia
+                   COMPLETAR: ✅
+                   - Generar un nuevo paso de la secuencia -> pseudo aleatoreo con ticks %4
                    - Verificar si se alcanzó MAX_SECUENCIA
-                   - Reiniciar variables necesarias para mostrar
+                   - Reiniciar variables necesarias para mostrar y esperar jugada
                    - Definir próximo estado
                    =========================================
                 */
 
-                //DUDA: no verifico si se alcanzó MAX_SECUENCIA xq no deberia entrar 
-                //aca si se adivino la ult ronda, esta bien? -> Teoricamente lo maneja 
-                //el estado de ronda superada, pero se agrega una comprobacion por posible
-                //error
-                    
-                    
-                //Genero valor pseudoaleatorio entre 0 y 3 para el nuevo paso de la secuencia
+                // innecesario pero por las dudas dejamos
+                if (longitud_secuencia >= MAX_SECUENCIA) {
+                    estado_actual = ESTADO_VICTORIA;
+                    continue;
+                }
+    
                 secuencia[longitud_secuencia] = ticks_ms % 4;
-
-                //Actualizo la longitud de la secuencia
                 longitud_secuencia++;                   
 
-                // reinicio variables de mostrar leds y de input de jugador
+                /* reinicio variables YA QUE 
+                estados mostrar_secuencia y esperar_jugador
+                deben comenzar con indice 0
+                */
                 indice_mostrar = 0;
                 indice_jugador=0;
 
-                
                 estado_actual = ESTADO_MOSTRAR_SECUENCIA;
                 subestado_mostrar = SUB_ENCENDER_LED;
                     
@@ -207,7 +206,7 @@ int main(void)
 
             case ESTADO_MOSTRAR_SECUENCIA: {
                 /* =========================================
-                   COMPLETAR:
+                   COMPLETAR: ✅
                    - Deshabilitar lectura del usuario
                    - Implementar submáquina de estados:
                         SUB_ENCENDER_LED
@@ -217,62 +216,54 @@ int main(void)
                    - Al finalizar la secuencia, pasar a
                      ESTADO_ESPERAR_JUGADOR
                    ========================================= */
+                /*
+                Cuando muestro leds ignora lectura de usuario
+                Submaquina de estados:
+                    1. Prende led, toma ref de tiempo y se va a esperar
+                    2. Espera usando ref para medir tiempo
+                    3. Apaga led, toma ref de tiempo y se va a esperar
+                    4. Espera. Al terminar aumenta indice_mostrar y decide si vuelve a arrancar con prox valor de secuencia (porque no mostró toda) o si espera input del jugador
+                */
 
-                //Deshabilito lectura del usuario 
                 habilitar_lectura_usuario = 0;
                 
             	switch (subestado_mostrar){
 					case SUB_ENCENDER_LED:
 					{
-						//seteo ref, prendo leds, me voy a esperar
 						tiempo_referencia = ticks_ms;
-
-                        //Si pongo solo indice_mostrar, me va a prender el primer led de la secuencia, 
-                        //pero necesito prender el que corresponde al valor de la secuencia en esa posicion
 						led_encender(secuencia[indice_mostrar]);
-
 						subestado_mostrar = SUB_ESPERAR_LED_ON;
 						break;
 					}
 
-                    //Me quedo en este subestado hasta que se cumpla el tiempo de encendido del led
 					case SUB_ESPERAR_LED_ON:
 					{
-                        if (tiempo_cumplido(tiempo_referencia, TIEMPO_LED_ON)) {
-                            subestado_mostrar = SUB_APAGAR_LED;
-                        };
+                        if (!tiempo_cumplido(tiempo_referencia, TIEMPO_LED_ON)) continue;
+                        subestado_mostrar = SUB_APAGAR_LED;
 						break;
 					}
 
 					case SUB_APAGAR_LED:
 					{
-                        //1. Apago el led que acabo de mostrar
 						led_apagar(secuencia[indice_mostrar]);
-
-                        //2. Seteo referencia para el tiempo entre leds
                         tiempo_referencia=ticks_ms;
-
-                        //3. Paso al subestado de espera entre leds
 						subestado_mostrar=SUB_ESPERAR_LED_OFF;
 						break;
 					}
 
 					case SUB_ESPERAR_LED_OFF:
 					{
-                        //1. Espero el tiempo entre leds
-						if (tiempo_cumplido(tiempo_referencia, TIEMPO_LED_OFF)){
-                            indice_mostrar++;
+						if (!tiempo_cumplido(tiempo_referencia, TIEMPO_LED_OFF)) continue;
                         
-                            //2. Si me quedan leds por mostrar, vuelvo a encender otro led
-						    if (indice_mostrar < longitud_secuencia) { 
-							    subestado_mostrar=SUB_ENCENDER_LED;
-						    }else{
-                                // ya mostre el ultimo indice, saltar prox estado
-                                habilitar_lectura_usuario=1;
-                                estado_actual=ESTADO_ESPERAR_JUGADOR;
-                            }
-                        };
-
+                        indice_mostrar++;
+                    
+                        if (indice_mostrar < longitud_secuencia) { 
+                            subestado_mostrar=SUB_ENCENDER_LED;
+                        }else{
+                            habilitar_lectura_usuario=1;
+                            estado_actual=ESTADO_ESPERAR_JUGADOR;
+                        }
+                        
 						break;
 					}
 
@@ -287,23 +278,23 @@ int main(void)
 
             case ESTADO_ESPERAR_JUGADOR: {
                 /* =========================================
-                   COMPLETAR:
+                   COMPLETAR: ✅
                    - Esperar evento_boton
                    - Mostrar el LED correspondiente al botón
                    - Esperar a que el botón sea soltado
                    - Pasar a ESTADO_VALIDAR_JUGADA
                    ========================================= */
+                /*
+                EINTHandler setea las flags de que se presionó un boton e indica cual, sino no hago nada
+                Cuando si, prendo ese led, espero que se suelte boton (si sigue presionado continue), luego apago led y paso de estado
+                */
+
             	if (evento_boton!=0 && boton_presionado!=-1){
-            		//1. Esto me muestra el led presionado
                     led_encender(boton_presionado);
 
-                    //2. Espera a que suelte el boton 
             		if (boton_sigue_presionado(boton_presionado)) continue;
 
-                    //3. Se soltó el boton, tengo que apagar el led y bajar la bandera
             		led_apagar(boton_presionado);
-                    evento_boton=0;    
-
             		estado_actual=ESTADO_VALIDAR_JUGADA;
             	}
 
@@ -312,7 +303,7 @@ int main(void)
 
             case ESTADO_VALIDAR_JUGADA: {
                 /* =========================================
-                   COMPLETAR:
+                   COMPLETAR: ✅
                    - Comparar boton_presionado con la secuencia
                    - Si acierta:
                         * avanzar indice_jugador
@@ -322,46 +313,52 @@ int main(void)
                         * indicar error
                         * pasar a GAME_OVER
                    ========================================= */
-            	if ((boton_presionado != secuencia[indice_jugador])) { // NO acerto
-            		
+
+                // No acertó: game over
+            	if (boton_presionado != secuencia[indice_jugador]) {
                     error_jugada=1;
             		estado_actual=ESTADO_GAME_OVER;
                     continue;
-                }    
-                indice_jugador++;
+                }
 
-                //puso toda la secuencia bien, paso de ronda
-                //pongo == ya que indice jugador seria total de 
-                //botones acertados (si ponemos > no llega)
+                
+                /* Acertó: 
+                si es ultimo elemento de secuencia pasa de ronda,
+                sino prox elemento (espero prox input)
+
+                ADEMÁS reseteo evento_boton y boton_presionado YA QUE
+                cualquier estado al que vaya necesita reset de vars de lectura de input
+                */
+
+                evento_boton=0;
+                boton_presionado=-1;
+                indice_jugador++;
 
                 if (indice_jugador == longitud_secuencia){ 
                     estado_actual=ESTADO_RONDA_SUPERADA;
                     continue;
-                } else { 
-                    //aca es acierto pero no termino la ronda, sigo esperando que ponga el siguiente boton
+                } else {
                     estado_actual=ESTADO_ESPERAR_JUGADOR;
                 }
-                // reset de vars de esperar jugador
-                evento_boton=0;
-                boton_presionado=-1;
             
                 break;
             }
 
             case ESTADO_RONDA_SUPERADA: {
                 /* =========================================
-                   COMPLETAR:
+                   COMPLETAR: ✅
                    - Incrementar nivel
                    - Decidir si pasa a VICTORIA o a
                      GENERAR_PASO
                     ========================================= */
                 
-                //Se usa para mostrar el nivel alcanzado, pero para comparar
-                //con el maximo de secuencia se usa longitud_secuencia, 
-                //ya que  es la que se incrementa al generar un nuevo paso
+                /* Nivel indica nivel alcanzado,
+                pero uso longitud_secuencia para comparar si llegué a ultima ronda
+                YA QUE es el indice para agregar nuevos elementos a la secuencia
+                y el que incremento en GENERAR_PASO
+                */
                 
                 nivel++;
-
             	if (longitud_secuencia==MAX_SECUENCIA){
             		estado_actual=ESTADO_VICTORIA;
             	} else {
@@ -372,16 +369,12 @@ int main(void)
 
             case ESTADO_GAME_OVER: {
                 /* =========================================
-                   COMPLETAR:
+                   COMPLETAR: ✅
                    - Definir comportamiento visual o lógico al perder -> ENCIENDO LED ROJO DE PLACA
                    - Definir transición de salida -> voy a iddle
                    ========================================= */
 
-                //Apago todos los leds de juego por las dudas
-                leds_apagar_todos();
-
-                //Enciendo led rojo de game over
-            	LPC_GPIO0->FIOCLR |= (1<<22); // luego en inicio debo apagarlo
+            	LPC_GPIO0->FIOCLR |= (1<<22); // en ESTADO_INICIO lo apago
             	estado_actual=ESTADO_IDLE;
 
                 break;
@@ -389,16 +382,12 @@ int main(void)
 
             case ESTADO_VICTORIA: {
                 /* =========================================
-                   COMPLETAR:
+                   COMPLETAR: ✅
                    - Definir comportamiento visual o lógico al ganar -> ENCIENDO LED VERDE DE PLACA
                    - Esperar reinicio del juego si se desea -> voy a iddle
                    ========================================= */
-
-                //Apago todos los leds de juego por las dudas
-                leds_apagar_todos();
                 
-                //enciendo led verde de victoria
-            	LPC_GPIO3->FIOCLR |= (1<<25); // luego en inicio debo apagarlo
+            	LPC_GPIO3->FIOCLR |= (1<<25); // en ESTADO_INICIO lo apago
             	estado_actual=ESTADO_IDLE;
                 break;
             }
