@@ -464,6 +464,9 @@ void EINT3_IRQHandler(void)
     //Antirrebote bloqueante
     delay_ms(50);
 
+    //Vuelvo a limpiar flags
+    LPC_GPIOINT->IO0IntClr = LPC_GPIOINT->IO0IntStatF;
+
     if(estado_actual == ESTADO_IDLE){
         evento_start = 1;                       //Si está en IDLE, inicio el juego
         return;
