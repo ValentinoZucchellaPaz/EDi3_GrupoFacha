@@ -77,6 +77,7 @@ uint8_t tiempo_cumplido(uint32_t referencia, uint32_t demora_ms);
 uint8_t boton_sigue_presionado(uint8_t boton);
 void demora_150ms(void);
 void systick_init(void);
+void delay_ms(uint32_t ms); // retardo bloqueante para antirebote de botones
 
 /* =========================
    VARIABLES DEL JUEGO
@@ -163,7 +164,7 @@ int main(void)
 
                 leds_apagar_todos();
 
-                // tmb apago leds de game over y victoria acá
+                // apago leds de placa (game over y victoria) YA QUE no lo hace leds_apagar_todos()
                 LPC_GPIO0->FIOSET |= (1<<22); // rojo
                 LPC_GPIO3->FIOSET |= (1<<25); // verde
 
@@ -173,31 +174,40 @@ int main(void)
 
             case ESTADO_GENERAR_PASO: {
                 /* =========================================
-                   COMPLETAR:
-                   - Generar un nuevo paso de la secuencia
+                   COMPLETAR: ✅
+                   - Generar un nuevo paso de la secuencia -> pseudo aleatoreo con ticks %4
                    - Verificar si se alcanzó MAX_SECUENCIA
-                   - Reiniciar variables necesarias para mostrar
+                   - Reiniciar variables necesarias para mostrar y esperar jugada
                    - Definir próximo estado
                    =========================================
                 */
 
-            		// DUDA: no verifico si se alcanzó MAX_SECUENCIA xq no deberia entrar aca si se adivino la ult ronda, esta bien?
+                // innecesario pero por las dudas dejamos
+                if (longitud_secuencia >= MAX_SECUENCIA) {
+                    estado_actual = ESTADO_VICTORIA;
+                    continue;
+                }
+    
+                secuencia[longitud_secuencia] = ticks_ms % 4;
+                longitud_secuencia++;                   
 
-					longitud_secuencia++;
-                    secuencia[longitud_secuencia] = ticks_ms % 4;
+                /* reinicio variables YA QUE 
+                estados mostrar_secuencia y esperar_jugador
+                deben comenzar con indice 0
+                */
+                indice_mostrar = 0;
+                indice_jugador=0;
 
-                    // reinicio variables de mostrar leds y de input de jugador
-                    indice_mostrar = 0;
-                    indice_jugador=0;
-
-                    estado_actual = ESTADO_MOSTRAR_SECUENCIA;
-                    subestado_mostrar = SUB_ENCENDER_LED;
+                estado_actual = ESTADO_MOSTRAR_SECUENCIA;
+                subestado_mostrar = SUB_ENCENDER_LED;
+                    
+                    
                 break;
             }
 
             case ESTADO_MOSTRAR_SECUENCIA: {
                 /* =========================================
-                   COMPLETAR:
+                   COMPLETAR: ✅
                    - Deshabilitar lectura del usuario
                    - Implementar submáquina de estados:
                         SUB_ENCENDER_LED
@@ -207,51 +217,54 @@ int main(void)
                    - Al finalizar la secuencia, pasar a
                      ESTADO_ESPERAR_JUGADOR
                    ========================================= */
+                /*
+                Cuando muestro leds ignora lectura de usuario
+                Submaquina de estados:
+                    1. Prende led, toma ref de tiempo y se va a esperar
+                    2. Espera usando ref para medir tiempo
+                    3. Apaga led, toma ref de tiempo y se va a esperar
+                    4. Espera. Al terminar aumenta indice_mostrar y decide si vuelve a arrancar con prox valor de secuencia (porque no mostró toda) o si espera input del jugador
+                */
 
                 habilitar_lectura_usuario = 0;
-
+                
             	switch (subestado_mostrar){
 					case SUB_ENCENDER_LED:
 					{
-						// seteo ref, prendo leds, me voy a esperar
-						referencia = ticks_ms;
-						led_encender(indice_mostrar);
-
+						tiempo_referencia = ticks_ms;
+						led_encender(secuencia[indice_mostrar]);
 						subestado_mostrar = SUB_ESPERAR_LED_ON;
 						break;
 					}
 
 					case SUB_ESPERAR_LED_ON:
 					{
-                        if (!tiempo_cumplido(tiempo_referencia, 1000)) continue;
-
-						subestado_mostrar=SUB_APAGAR_LED;
+                        if (!tiempo_cumplido(tiempo_referencia, TIEMPO_LED_ON)) continue;
+                        subestado_mostrar = SUB_APAGAR_LED;
 						break;
 					}
 
 					case SUB_APAGAR_LED:
 					{
-						referencia=ticks_ms;
-						led_apagar(indice_mostrar);
-
+						led_apagar(secuencia[indice_mostrar]);
+                        tiempo_referencia=ticks_ms;
 						subestado_mostrar=SUB_ESPERAR_LED_OFF;
 						break;
 					}
 
 					case SUB_ESPERAR_LED_OFF:
 					{
-						if (!tiempo_cumplido(tiempo_referencia, 300)) continue;
-
-
-						if (indice_mostrar < longitud_secuencia) { // me quedan indices por mostrar
-							indice_mostrar++;
-							subestado_mostrar=SUB_ENCENDER_LED;
-							continue;
-						}
-
-						// ya mostre el ultimo indice, saltar prox estado
-						habilitar_lectura_usuario=1;
-						estado_actual=ESTADO_ESPERAR_JUGADOR;
+						if (!tiempo_cumplido(tiempo_referencia, TIEMPO_LED_OFF)) continue;
+                        
+                        indice_mostrar++;
+                    
+                        if (indice_mostrar < longitud_secuencia) { 
+                            subestado_mostrar=SUB_ENCENDER_LED;
+                        }else{
+                            habilitar_lectura_usuario=1;
+                            estado_actual=ESTADO_ESPERAR_JUGADOR;
+                        }
+                        
 						break;
 					}
 
@@ -260,26 +273,29 @@ int main(void)
 						subestado_mostrar = SUB_ENCENDER_LED;
 						break;
 					}
-				}
-
+                }
                 break;
             }
 
             case ESTADO_ESPERAR_JUGADOR: {
                 /* =========================================
-                   COMPLETAR:
+                   COMPLETAR: ✅
                    - Esperar evento_boton
                    - Mostrar el LED correspondiente al botón
                    - Esperar a que el botón sea soltado
                    - Pasar a ESTADO_VALIDAR_JUGADA
                    ========================================= */
+                /*
+                EINTHandler setea las flags de que se presionó un boton e indica cual, sino no hago nada
+                Cuando si, prendo ese led, espero que se suelte boton (si sigue presionado continue), luego apago led y paso de estado
+                */
+
             	if (evento_boton!=0 && boton_presionado!=-1){
-            		led_encender(boton_presionado);
+                    led_encender(boton_presionado);
 
             		if (boton_sigue_presionado(boton_presionado)) continue;
 
             		led_apagar(boton_presionado);
-
             		estado_actual=ESTADO_VALIDAR_JUGADA;
             	}
 
@@ -288,7 +304,7 @@ int main(void)
 
             case ESTADO_VALIDAR_JUGADA: {
                 /* =========================================
-                   COMPLETAR:
+                   COMPLETAR: ✅
                    - Comparar boton_presionado con la secuencia
                    - Si acierta:
                         * avanzar indice_jugador
@@ -298,37 +314,53 @@ int main(void)
                         * indicar error
                         * pasar a GAME_OVER
                    ========================================= */
-            	if (boton_presionado == secuencia[indice_jugador]) { // acerto
-            		indice_jugador++;
 
-            		if (indice_jugador > longitud_secuencia){ // puso toda la secuencia bien, paso de ronda
-            			estado_actual=ESTADO_RONDA_SUPERADA;
-            			continue;
-            		} else { // falta partes de la sec->espero prox boton
-            			estado_actual=ESTADO_ESPERAR_JUGADOR;
-
-            			// reset de vars de esperar jugador
-            			evento_boton=0;
-            			boton_presionado=-1;
-            		}
-
-            	} else { // le erró -> game over
-            		error_jugada=1;
+                // No acertó: game over
+            	if (boton_presionado != secuencia[indice_jugador]) {
+                    error_jugada=1;
             		estado_actual=ESTADO_GAME_OVER;
-            	}
+                    continue;
+                }
 
+                
+                /* Acertó: 
+                si es ultimo elemento de secuencia pasa de ronda,
+                sino prox elemento (espero prox input)
+
+                ADEMÁS reseteo evento_boton y boton_presionado YA QUE
+                cualquier estado al que vaya necesita reset de vars de lectura de input
+                */
+
+                evento_boton=0;
+                boton_presionado=-1;
+                indice_jugador++;
+
+                if (indice_jugador == longitud_secuencia){ 
+                    estado_actual=ESTADO_RONDA_SUPERADA;
+                    continue;
+                } else {
+                    estado_actual=ESTADO_ESPERAR_JUGADOR;
+                }
+            
                 break;
             }
 
             case ESTADO_RONDA_SUPERADA: {
                 /* =========================================
-                   COMPLETAR:
+                   COMPLETAR: ✅
                    - Incrementar nivel
                    - Decidir si pasa a VICTORIA o a
                      GENERAR_PASO
-                   ========================================= */
-            	nivel++;
-            	if (nivel==MAX_SECUENCIA - 1){
+                    ========================================= */
+                
+                /* Nivel indica nivel alcanzado,
+                pero uso longitud_secuencia para comparar si llegué a ultima ronda
+                YA QUE es el indice para agregar nuevos elementos a la secuencia
+                y el que incremento en GENERAR_PASO
+                */
+                
+                nivel++;
+            	if (longitud_secuencia==MAX_SECUENCIA){
             		estado_actual=ESTADO_VICTORIA;
             	} else {
             		estado_actual=ESTADO_GENERAR_PASO;
@@ -338,12 +370,12 @@ int main(void)
 
             case ESTADO_GAME_OVER: {
                 /* =========================================
-                   COMPLETAR:
+                   COMPLETAR: ✅
                    - Definir comportamiento visual o lógico al perder -> ENCIENDO LED ROJO DE PLACA
                    - Definir transición de salida -> voy a iddle
                    ========================================= */
 
-            	LPC_GPIO0->FIOCLR |= (1<<22); // luego en inicio debo apagarlo
+            	LPC_GPIO0->FIOCLR |= (1<<22); // en ESTADO_INICIO lo apago
             	estado_actual=ESTADO_IDLE;
 
                 break;
@@ -351,12 +383,12 @@ int main(void)
 
             case ESTADO_VICTORIA: {
                 /* =========================================
-                   COMPLETAR:
+                   COMPLETAR: ✅
                    - Definir comportamiento visual o lógico al ganar -> ENCIENDO LED VERDE DE PLACA
                    - Esperar reinicio del juego si se desea -> voy a iddle
                    ========================================= */
-
-            	LPC_GPIO3->FIOCLR |= (1<<25); // luego en inicio debo apagarlo
+                
+            	LPC_GPIO3->FIOCLR |= (1<<25); // en ESTADO_INICIO lo apago
             	estado_actual=ESTADO_IDLE;
                 break;
             }
@@ -421,13 +453,40 @@ void EINT3_IRQHandler(void)
     LPC_GPIOINT->IO0IntClr = estado_p0;
 
     /* =========================================
-       COMPLETAR:
+       COMPLETAR: ✅
        - Detectar evento de inicio del juego
        - Ignorar pulsaciones si no está habilitada
          la lectura del usuario
        - Detectar qué botón fue presionado
        - Actualizar boton_presionado y evento_boton
        ========================================= */
+
+    //Antirrebote bloqueante
+    delay_ms(50);
+
+    //Vuelvo a limpiar flags
+    LPC_GPIOINT->IO0IntClr = LPC_GPIOINT->IO0IntStatF;
+
+    if(estado_actual == ESTADO_IDLE){
+        evento_start = 1;                       //Si está en IDLE, inicio el juego
+        return;
+    } else if (habilitar_lectura_usuario == 1){    //Puedo leer botones?
+        evento_boton = 1;
+
+        //Detecto boton presionado
+        if (estado_p0 & BOTON_0) boton_presionado = 0;
+        else if (estado_p0 & BOTON_1) boton_presionado = 1;
+        else if (estado_p0 & BOTON_2) boton_presionado = 2;
+        else if (estado_p0 & BOTON_3) boton_presionado = 3;
+    }
+}
+
+//Retardo antirrebote
+void delay_ms(uint32_t ms)
+{
+    for (volatile uint32_t i = 0; i < ms; i++){
+        for (volatile uint32_t j = 0; j < 14000; j++);
+    }
 }
 
 /* =========================
