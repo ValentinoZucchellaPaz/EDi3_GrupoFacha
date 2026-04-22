@@ -160,8 +160,8 @@ void init_timer1(void)
                     
     LPC_TIM1 -> CCR = (1<<1) | (1<<2);  // captura en CAP1.0 por flanco de bajada y activa interrupcion
     // reset y enable
-    LPC_TIM0 -> TCR = (1 << 1);
-    LPC_TIM0 -> TCR = 1;
+    LPC_TIM1 -> TCR = (1 << 1);
+    LPC_TIM1 -> TCR = 1;
     NVIC -> ISER[0] |= (1<<TIMER1_IRQn);
 }
 
@@ -253,6 +253,6 @@ void TIMER1_IRQHandler (void)
 
 void ADC_IRQHandler(void)
 {
-    conversion_val = ((LPC_ADC->ADDR2 & 0xFFF) >> 4); // tomo 12 bits de conversion y pongo que comiencen en el bit 0
+    conversion_val = ((LPC_ADC->ADDR2 >> 4) & 0xFFF); // tomo 12 bits de conversion y pongo que comiencen en el bit 0
     converted=1;
 }
