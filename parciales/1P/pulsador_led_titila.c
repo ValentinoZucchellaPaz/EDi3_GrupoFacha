@@ -5,7 +5,7 @@ Escribir un programa que haga que un led titile cuando se presiona un boton
 #include <LPC17xx.h>
 
 #define TICKS_1SEG 10000000
-volatile uint32_t pulsado = 0; // flag para saber cuando este presionado el boton
+volatile uint32_t presionado = 0; // flag para saber cuando este presionado el boton
 
 void systick_init(uint32_t ticks) {
     SysTick->CTRL = 0;
