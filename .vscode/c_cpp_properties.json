@@ -1,0 +1,18 @@
+{
+  "configurations": [
+    {
+      "name": "Linux", // ajustar para los pobres con windows
+      "includePath": [
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/mcu/CMSISv2p00_LPC17xx/inc"
+      ],
+      "defines": ["LPC1769", "__USE_CMSIS"],
+      "compilerPath": "/usr/bin/gcc",
+      //   "compilerPath": "/usr/bin/arm-none-eabi-gcc",
+      "cStandard": "c17",
+      "cppStandard": "gnu++17",
+      "intelliSenseMode": "linux-gcc-x64"
+    }
+  ],
+  "version": 4
+}

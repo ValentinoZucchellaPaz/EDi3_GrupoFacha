@@ -8,6 +8,7 @@ crp.c
 CMSISv1p30_LPC17xx/
 CMSISv2p00_DSPLIB_CM3/
 CMSISv2p00_LPC17xx/
+!mcu/CMSISv2p00_LPC17xx/
 .metadata/
 .idea/
 AzureRTOS_TAD_logs/
