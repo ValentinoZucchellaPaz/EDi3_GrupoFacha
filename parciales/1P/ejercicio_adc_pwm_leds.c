@@ -18,7 +18,7 @@ Resolución ADC: 12 bits -> uso 10 superiores para tener
 Resolución PWM: mínimo 100 niveles -> PASO=MR1/100
 */
 
-#include "LPC17xx.h"
+#include "lpc17xx.h"
 
 #define MR1_PERIOD 100
 

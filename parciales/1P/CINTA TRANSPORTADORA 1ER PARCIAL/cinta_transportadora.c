@@ -1,5 +1,5 @@
 #ifdef __USE_CMSIS
-#include "LPC17xx.h"
+#include "lpc17xx.h"
 #endif
 
 void iniciar_sistema(void);
