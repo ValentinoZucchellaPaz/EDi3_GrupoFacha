@@ -28,7 +28,7 @@
 #define LPC17XX_DAC_H_
 
 /* -------------------------------- Includes -------------------------------- */
-#include "LPC17xx.h"
+#include "lpc17xx.h"
 #include "lpc_types.h"
 
 #ifdef __cplusplus
@@ -42,7 +42,7 @@ extern "C" {
 
 /** After the selected settling time after this field is written with a
 new VALUE, the voltage on the AOUT pin (with respect to VSSA)
-is VALUE/1024 × VREF */
+is VALUE/1024 ï¿½ VREF */
 #define DAC_VALUE(n)      ((uint32_t)((n & 0x3FF) << 6))
 /** If this bit = 0: The settling time of the DAC is 1 microsecond max,
  * and the maximum current is 700 microAmpere
