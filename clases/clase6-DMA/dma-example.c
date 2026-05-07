@@ -35,8 +35,8 @@ int main(void) {
 
 
 void config_DMA(GPDMA_LLI_T lli){
-	GPDMA_Endpoint_T dsrc={GPDMA_HALFWORD,GPDMA_BSIZE_1, DISABLE};
-	GPDMA_Endpoint_T ddst={GPDMA_HALFWORD,GPDMA_BSIZE_1, ENABLE};
+	GPDMA_Endpoint_T dsrc={burst: GPDMA_HALFWORD,width: GPDMA_BSIZE_1,increment: DISABLE};
+	GPDMA_Endpoint_T ddst={burst: GPDMA_HALFWORD,width: GPDMA_BSIZE_1,increment: ENABLE};
 	GPDMA_DeInit();
 	GPDMA_Channel_CFG_T dmaCfg;
 	dmaCfg.transferSize=100;
