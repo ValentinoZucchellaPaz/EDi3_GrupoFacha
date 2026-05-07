@@ -28,7 +28,7 @@
 #define LPC17XX_I2S_H_
 
 /* Includes ------------------------------------------------------------------- */
-#include "lpc17xx.h"
+#include "LPC17xx.h"
 #include "lpc_types.h"
 
 
