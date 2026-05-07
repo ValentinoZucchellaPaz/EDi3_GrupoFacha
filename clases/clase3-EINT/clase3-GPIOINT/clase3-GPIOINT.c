@@ -1,4 +1,4 @@
-#include "lpc17xx.h"
+#include "LPC17xx.h"
 
 // Handler de EINT3 (GPIO interrupt)
 void EINT3_IRQHandler(void)

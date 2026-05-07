@@ -1,6 +1,6 @@
 // hacer onda serrucho con periodo 1ms y 10 cambios por periodo
 
-#include "lpc17xx.h"
+#include "LPC17xx.h"
 
 #include "lpc17xx_dac.h"
 #include "lpc17xx_timer.h"

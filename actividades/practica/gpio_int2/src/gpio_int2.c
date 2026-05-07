@@ -6,7 +6,7 @@
  */
 
 #ifdef __USE_CMSIS
-#include "lpc17xx.h"
+#include "LPC17xx.h"
 #endif
 
 #include <cr_section_macros.h>

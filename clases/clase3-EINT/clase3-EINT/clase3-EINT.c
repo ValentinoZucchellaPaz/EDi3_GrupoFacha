@@ -1,6 +1,6 @@
 // Alumnos: Pedro Guzman, Tomas Garay, Valentino Zucchella Paz
 // probar
-#include "lpc17xx.h"
+#include "LPC17xx.h"
 
 void EINT0_IRQHandler(void) {
 	LPC_GPIO0->FIOPIN ^= (1<<22); // toggle de led

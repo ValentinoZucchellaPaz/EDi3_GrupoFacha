@@ -7,7 +7,7 @@ Si no se ingresa la correcta luego de los 30seg o se pifia dos veces se dispara 
 asumo sin rebotes
 */
 #ifdef __USE_CMSIS
-#include "lpc17xx.h"
+#include "LPC17xx.h"
 #endif
 
 #include <cr_section_macros.h>

@@ -1,6 +1,6 @@
 // ejercicio trujillo: promedio adc -> convertir señal con adc, llenar un array de 100 elementos (con dma y burst mode), hacer promedio y mostrar señal promediada por dac
 
-#include "lpc17xx.h"
+#include "LPC17xx.h"
 #include "lpc17xx_gpdma.h"
 #include "lpc17xx_adc.h"
 #include "lpc17xx_dac.h"
