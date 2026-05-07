@@ -9,7 +9,7 @@
  * Conectar leds a vcc y que hundan corriente al pin, se prenden con 0 en el pin
  */
 
-#include "LPC17xx.h"
+#include "lpc17xx.h"
 #include <stdio.h>
 #include <stdlib.h>
 
