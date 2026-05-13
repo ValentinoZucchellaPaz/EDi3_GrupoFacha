@@ -63,7 +63,7 @@ int main(void)
 void signalGenerator(uint16_t *arr)
 {
     uint16_t counter = 0;
-    while (counter < 381)
+    while (counter < 382)
     {
         if (counter < 96)
         {
