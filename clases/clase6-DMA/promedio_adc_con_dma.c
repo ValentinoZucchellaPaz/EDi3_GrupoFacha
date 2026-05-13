@@ -95,8 +95,6 @@ void processData(uint16_t *buf)
 	DAC_UpdateValue((sum / 100) >> 2);
 }
 
-// TODO: DMA isr que haga promedio y mande a DAC
-
 void DMA_IRQHandler(void)
 {
 	if (GPDMA_IntGetStatus(GPDMA_INTTC, GPDMA_CH_0) == SET)
