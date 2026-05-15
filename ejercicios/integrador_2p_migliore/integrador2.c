@@ -14,29 +14,8 @@
 
 // firmas de funciones
 
-/**
- * @brief Configura el DAC para que haga request al DMA
- * de manera que se vayan sacando datos del array con un periodo deseado (1s)
- */
 void configDac(void);
-
-/**
- * @brief Configura el DMA para
- * mandar datos desde la posicion de array recibida (de forma incremental)
- * hacia el DAC a pedido del DAC.
- *
- * @param lli Puntero a una GPDMA_LLI_T para conf proximos envios
- * @param arrSrcAddr Puntero al array de datos
- */
 void configDma(GPDMA_LLI_T *lli, uint16_t *arrSrcAddr);
-
-/**
- * @brief Toma un array y lo llena con una forma de onda triangular
- * de 382 muestras adecuada para ser mostrada por el DAC.
- * Se ponen los valores ya desplazados a los bits 15:6. (value de DAC)
- *
- * @param arr Puntero al array de datos
- */
 void signalGenerator(uint16_t *arr);
 
 int main(void)
@@ -60,6 +39,13 @@ int main(void)
     return 1;
 }
 
+/**
+ * @brief Toma un array y lo llena con una forma de onda triangular
+ * de 382 muestras adecuada para ser mostrada por el DAC.
+ * Se ponen los valores ya desplazados a los bits 15:6. (value de DAC)
+ *
+ * @param arr Puntero al array de datos
+ */
 void signalGenerator(uint16_t *arr)
 {
     uint16_t counter = 0;
@@ -84,6 +70,10 @@ void signalGenerator(uint16_t *arr)
     }
 }
 
+/**
+ * @brief Configura el DAC para que haga request al DMA
+ * de manera que se vayan sacando datos del array con un periodo deseado (1s)
+ */
 void configDac(void)
 {
     DAC_CONVERTER_CFG_T dacConfig;
@@ -100,6 +90,14 @@ void configDac(void)
     DAC_SetDMATimeOut(65100);
 }
 
+/**
+ * @brief Configura el DMA para
+ * mandar datos desde la posicion de array recibida (de forma incremental)
+ * hacia el DAC a pedido del DAC.
+ *
+ * @param lli Puntero a una GPDMA_LLI_T para conf proximos envios
+ * @param arrSrcAddr Puntero al array de datos
+ */
 void configDma(GPDMA_LLI_T *lli, uint16_t *arrSrcAddr)
 {
     GPDMA_Endpoint_T srcc;
