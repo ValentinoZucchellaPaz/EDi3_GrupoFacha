@@ -108,6 +108,12 @@ void TIMER0_IRQHandler(void)
             if (prev_start == 0) // en primer iteracion no saco periodo, espero
                 return;
 
+            // manejo ovf
+            if (cur_start < prev_start)
+            {
+                period = (0xFFFFFFFF - prev_start) + cur_start + 1;
+            }
+
             period = cur_start - prev_start;
             duty = ((float)high_time / (float)period);
 
