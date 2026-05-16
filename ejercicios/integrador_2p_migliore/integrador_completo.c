@@ -72,6 +72,9 @@ int main(void)
             if (config_flag == 0)
                 break;
 
+            // apagar dac
+            conf_DAC();
+
             // encender timer (MAT01 toggle cada 15s)
             TIM_Enable(LPC_TIM0);
 
@@ -121,6 +124,7 @@ int main(void)
                 promedio = sum / 4095;
                 promedio_flag = 0;
             }
+
             if (config_flag == 0)
                 break;
 
@@ -208,7 +212,9 @@ void signalGenerator(void)
     }
 }
 
-// Interrumpe cuando P2.10 tiene flanco desc, no tiene pull down/up
+/**
+ * @brief Interrumpe cuando P2.10 tiene flanco desc, no tiene pull down/up
+ */
 void conf_INTE(void)
 {
     EXTI_CFG_T extiCfg;
@@ -222,7 +228,9 @@ void conf_INTE(void)
     EXTI_EnableIRQ(EXTI_EINT0);
 }
 
-// Hace cambios de estados cuando viene la interrupcion, solo cambia flags
+/**
+ * @brief  Hace cambios de estados cuando viene la interrupcion, solo cambia flags
+ */
 void EINT0_IRQHandler(void)
 {
     if (EXTI_GetFlag(EXTI_EINT0) == SET)
@@ -255,7 +263,9 @@ void EINT0_IRQHandler(void)
     }
 }
 
-// Configura el timer0 para que haga toggle de MAT01 cada 15s
+/**
+ * @brief Configura el timer0 para que haga toggle de MAT01 cada 15s (no arranca timer)
+ */
 void conf_Timer(void)
 {
     // conf toggle de adc_puntero
@@ -275,17 +285,22 @@ void conf_Timer(void)
     TIM_ConfigMatch(LPC_TIM0, &matchcfg);
 }
 
-// Configura adc con maxima frec de conversion, channel 0, start con rising edge y habilita las interrupciones de adc
+/**
+ * @brief Configura adc con maxima frec de conversion, channel 0, start con rising edge y habilita las interrupciones de adc, arranca apagado (PDN=0)
+ */
 void conf_ADC(void)
 {
     ADC_Init(200000); // max frec conv
     ADC_ChannelEnable(ADC_CHANNEL_0);
     ADC_PinConfig(ADC_CHANNEL_0);
     ADC_EdgeStartConfig(ADC_START_ON_RISING);
+    ADC_PowerDown(); // pdn=0
     NVIC_EnableIRQ(ADC_IRQn);
 }
 
-// Setea el DAC para que convierta y haga request a DMA con distintos tiempos de request dependiendo el estado actual cuando se llame a la funcion
+/**
+ * @brief Setea el DAC para que convierta y haga request a DMA con distintos tiempos de request dependiendo el estado actual cuando se llame a la funcion
+ */
 void conf_DAC(void)
 {
     DAC_Init();
@@ -294,7 +309,10 @@ void conf_DAC(void)
     dacConfig.dmaCounter = ENABLE;
     dacConfig.dmaRequest = ENABLE;
     dacConfig.doubleBuffer = DISABLE;
-    DAC_ConfigDAConverterControl(&dacConfig);
+    DAC_CONVERTER_CFG_T dacConfigOff;
+    dacConfig.dmaCounter = DISABLE;
+    dacConfig.dmaRequest = DISABLE;
+    dacConfig.doubleBuffer = DISABLE;
 
     switch (estado)
     {
@@ -302,6 +320,7 @@ void conf_DAC(void)
     {
         // pide un nuevo dato cada 2604 us (6103 ticks)
         // son 4k datos (de 16bytes) => muestro todo en 1s (periodo de onda 1 seg)
+        DAC_ConfigDAConverterControl(&dacConfig);
         DAC_SetDMATimeOut(6103);
         break;
     }
@@ -310,6 +329,7 @@ void conf_DAC(void)
     {
         // pide un nuevo dato cada 2604 us (65100 ticks)
         // son 382 datos => muestro todo en 1s (periodo de onda 1 seg)
+        DAC_ConfigDAConverterControl(&dacConfig);
         DAC_SetDMATimeOut(65100);
         break;
     }
@@ -318,7 +338,10 @@ void conf_DAC(void)
     case PROMEDIO:
     case ADC_DMA:
     default:
+    {
+        DAC_ConfigDAConverterControl(&dacConfigOff); // apaga
         break;
+    }
     }
 }
 
@@ -416,7 +439,9 @@ void conf_DMA(GPDMA_LLI_T *lli_bank0_a_dac, GPDMA_LLI_T *lli_bank1_a_dac)
     NVIC_EnableIRQ(DMA_IRQn);
 }
 
-// Handler que cuando se hace una conversion, guarda en memoria con un puntero (adc2mem_ptr)
+/**
+ * @brief Handler que cuando se hace una conversion, guarda en memoria con un puntero (adc2mem_ptr)
+ */
 void ADC_IQRHandler(void)
 {
     static uint32_t counter = 0;
@@ -427,7 +452,9 @@ void ADC_IQRHandler(void)
     }
 }
 
-// Handler que cuando se termina transferencia M2M entre mitades de SRAM_BANK0, hace promedio y guarda (solo setea flags)
+/**
+ * @brief Handler que cuando se termina transferencia M2M entre mitades de SRAM_BANK0, hace promedio y guarda (solo setea flags)
+ */
 void DMA_IRQHandler(void)
 {
     if (GPDMA_IntGetStatus(GPDMA_INTTC, GPDMA_CH_0) == SET)
