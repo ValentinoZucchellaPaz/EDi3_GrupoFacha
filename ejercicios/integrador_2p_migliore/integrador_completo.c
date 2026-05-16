@@ -27,7 +27,7 @@ typedef enum
 {
     ESPERA,       // idle inicial
     ADC_PUNTERO,  // muevo P2M de ADC a SRAM_BANK0_COMIENZO usando punteros en ADC_IRQHandler
-    ADC_DMA,      // muevo P2M de ADC a SRAM_BANK0_COMIENZO
+    ADC_DMA,      // muevo P2M de ADC a SRAM_BANK0_COMIENZO usando DMA
     PROMEDIO,     // muevo M2M de SRAM_BANK0_COMIENZO a SRAM_BANK0_MEDIO, cuando termina transf calc promedio y guardo en var (todo eso en isr)
     SRAM02DAC,    // muevo M2P de SRAM_BANK0_MEDIO a DAC
     FORMA_DE_ONDA // muevo M2P de SRAM_BANK1 a DAC (onda construida)
@@ -118,7 +118,7 @@ int main(void)
                 int sum = 0;
                 for (int i = 0; i < 4095; i++)
                 {
-                    sum += mem2mem_ptr[i];
+                    sum += (uint32_t)((mem2mem_ptr[i] >> 4) & 0xFFF);
                 }
 
                 promedio = sum / 4095;
@@ -182,11 +182,9 @@ int main(void)
 }
 
 /**
- * @brief Toma un array y lo llena con una forma de onda triangular
+ * @brief Llena el array signals con una forma de onda triangular
  * de 382 muestras adecuada para ser mostrada por el DAC.
  * Se ponen los valores ya desplazados a los bits 15:6. (value de DAC)
- *
- * @param arr Puntero al array de datos
  */
 void signalGenerator(void)
 {
@@ -346,7 +344,7 @@ void conf_DAC(void)
 }
 
 /**
- * @brief Configua 4 canales para distintos estados, no hicia ninguno:
+ * @brief Configua 4 canales para distintos estados, no inicia ninguno:
  * \n
  * - CH0 (ADC_DMA): transf de 4095 datos de 16bits desde el ADC a SRAM_BANK0_COMIENZO
  * \n
