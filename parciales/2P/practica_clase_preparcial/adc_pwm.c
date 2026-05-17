@@ -139,7 +139,7 @@ float avg(void)
     {
         p += arr[i];
     }
-    return p / 4;
+    return p / 4.0;
 }
 
 /**
