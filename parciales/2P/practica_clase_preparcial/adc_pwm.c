@@ -31,7 +31,8 @@ int main(void)
         }
         else if (valorProm <= 4924)
         {
-            duty = (valorProm / 4924) * 100;
+            float valorTension = (valorProm / 4924.0);
+            duty = (uint32_t)(50.0 + (valorTension - 1) * 40); // 1V -> 50%; 2V -> 90%;
             config_timer1_pwm(duty);
             startPWM();
         }
@@ -112,7 +113,7 @@ void config_timer1_pwm(uint32_t duty)
     match1cfg.stopEn = DISABLE;
     match1cfg.resetEn = DISABLE;
     match1cfg.extOpt = 0;
-    match1cfg.matchValue = duty / 2;
+    match1cfg.matchValue = duty / 2; // duty es un valor de 0 a 100, pero como el periodo es 50 lo parto a la mitad
 
     TIM_InitTimer(LPC_TIM1, &tim);
     TIM_ConfigMatch(LPC_TIM1, &match0cfg);
