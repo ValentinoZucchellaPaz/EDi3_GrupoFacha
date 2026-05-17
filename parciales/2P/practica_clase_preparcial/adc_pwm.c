@@ -21,34 +21,32 @@ int main(void)
 
     uint32_t duty = 50;
     float valorProm;
-    if (calcPromedio == 1)
-    {
-        valorProm = avg();
-        if (valorProm <= 2482)
-        {
-            stopPWM();
-            GPIO_ClearPins(0, 1);
-        }
-        else if (valorProm <= 4924)
-        {
-            float valorTension = (valorProm / 4924.0);
-            duty = (uint32_t)(50.0 + (valorTension - 1) * 40); // 1V -> 50%; 2V -> 90%;
-            config_timer1_pwm(duty);
-            startPWM();
-        }
-        else
-        {
-            stopPWM();
-            GPIO_SetPins(0, 1);
-        }
-
-        calcPromedio = 0;
-    }
 
     while (1)
     {
+        if (calcPromedio == 1)
+        {
+            valorProm = avg();
+            if (valorProm <= 1241)
+            {
+                stopPWM();
+                GPIO_ClearPins(0, 1);
+            }
+            else if (valorProm <= 2482)
+            {
+                float valorTension = (valorProm * 3.3 / 4096.0);
+                duty = (uint32_t)(50.0 + (valorTension - 1) * 40); // 1V -> 50%; 2V -> 90%;
+                config_timer1_pwm(duty);
+                startPWM();
+            }
+            else
+            {
+                stopPWM();
+                GPIO_SetPins(0, 1);
+            }
 
-        __asm volatile("nop");
+            calcPromedio = 0;
+        }
     }
     return 0;
 }
@@ -58,13 +56,13 @@ int main(void)
  */
 void config_adc(void)
 {
-    ADC_PowerUp();    // encendemos el ADC
     ADC_Init(200000); // max frec conv
     ADC_ChannelEnable(ADC_CHANNEL_0);
     ADC_BurstDisable();
     ADC_PinConfig(ADC_CHANNEL_0);
     ADC_IntEnable(ADC_CHANNEL_0);
     ADC_StartCmd(ADC_START_ON_MAT01); // conf para que timer haga trigger cada 30s
+    ADC_PowerUp();                    // encendemos el ADC
 }
 
 /**
@@ -74,8 +72,8 @@ void config_timer0_adc(void)
 {
 
     TIM_TIMERCFG_T tim;
-    tim.prescaleOpt = TIM_TICK;
-    tim.prescaleValue = 24999999;
+    tim.prescaleOpt = TIM_US;
+    tim.prescaleValue = 1000000;
 
     TIM_InitTimer(LPC_TIM0, &tim);
     TIM_MATCHCFG_T matchcfg;
@@ -152,7 +150,7 @@ void ADC_IRQHandler(void)
     static int counter = 0;
     if (ADC_GlobalGetStatus(ADC_DATA_DONE))
     {
-        arr[counter] = ADC_GlobalGetData(); // array guardando las conversiones
+        arr[counter] = (ADC_GlobalGetData() >> 4) & 0xFFF; // array guardando las conversiones
         counter++;
         if (counter == 4)
         {
@@ -167,13 +165,15 @@ void ADC_IRQHandler(void)
  */
 void TIM1_IRQHandler(void)
 {
-    if (TIM_GetIntStatus(LPC_TIM1, TIM_MATCH_0) == SET)
+    if (TIM_GetIntStatus(LPC_TIM1, TIM_MR0_INT) == SET)
     {
+        TIM_ClearIntPending(LPC_TIM1, TIM_MR0_INT);
         GPIO_SetPinState(PORT_0, PIN_0, 1);
     }
 
-    if (TIM_GetIntStatus(LPC_TIM1, TIM_MATCH_1) == SET)
+    if (TIM_GetIntStatus(LPC_TIM1, TIM_MR1_INT) == SET)
     {
+        TIM_ClearIntPending(LPC_TIM1, TIM_MR1_INT);
         GPIO_SetPinState(PORT_0, PIN_0, 0);
     }
 }
