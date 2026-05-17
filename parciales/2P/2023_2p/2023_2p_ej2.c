@@ -6,7 +6,6 @@
  *  CCLK = 80 Mhz
  *
  * FORMA_DE_ONDA:
- * -
  * - 8k muestras y debe salir con periodo 614us
  * - Separo la señal en 2 (4k subida pos, 4k subida neg)
  *      - debe subir de 512 a 1023 en 4k pasos → aumento en 1 cada 8 pasos
@@ -27,6 +26,7 @@ typedef enum
     ADC_2_MEM,       // muevo P2M de ADC a SRAM_BANK0_COMIENZO usando DMA
     ADC_2_DAC,       // muevo M2P de SRAM_BANK0_COMIENZO a DAC usando DMA
     WAVE_FORM_2_DAC, // muevo M2P de SRAM_BANK0_MEDIO a DAC (onda construida)
+    // cuando saco la forma de onda por dac AL MISMO TIEMPO tengo que seguir convirtiendo por el ADC
 } STATE_T;
 
 STATE_T state = ADC_2_MEM;
@@ -74,8 +74,6 @@ int main(void)
             if (config_flag == 0)
                 break;
 
-            // apagar dac
-            confDAC();
             // encender adc
             ADC_PowerUp();
             // habilitar canal0 dma adc2mem
@@ -94,8 +92,9 @@ int main(void)
             // apagar adc
             ADC_PowerDown();
 
-            // encender dac
-            configDAC();
+            DAC_SetDMATimeOut(620); // saco datos a frecuencia de señal, 16kHz -> 62.5us de periodo
+            // como muestree a 32kHz tengo 2 muestras por periodo, debo sacar a 31.25us cada muestra
+            // trg = ticks / pclk -> ticks = 31us * 20MHz = 620
 
             // habilitar canal 1 dma mem2dac (primera mitad de sram bank0)
             GPDMA_ChannelGracefulStop(GPDMA_CH_0);
@@ -110,8 +109,7 @@ int main(void)
             if (config_flag == 0)
                 break;
 
-            // cambiar config dac
-            configDAC();
+            DAC_SetDMATimeOut(20); // pide 1 dato cada 1us, como son 614 datos logro el periodo deseado
 
             // habilitar canal 2 dma mem2dac (segunda mitad de sram bank0)
             GPDMA_ChannelGracefulStop(GPDMA_CH_0);
@@ -130,13 +128,13 @@ int main(void)
 }
 
 /**
- * Crea señal de consigna:
- * Max frec conversion DAC es 1us => hago 614 muestras para tener periodo 614us
- * para llegar de 0 a 512 en 307 muestras -> voy a tener saltos de 1.66
- * como debo hacer saltos enteros, hago la mitad saltos de 1 y la otra mitad saltos de 2
- * - 153 saltos de 1 + 154 saltos de 2 => 461 => 1.487V
- * - onda arranca del medio (512, 1.65V), aumenta hasta (973, 3.13V)
- * - segunda mitad arranca en (21, 0.068v), aumenta hasta (512, 1.65V)
+ * @brief Crea señal de consigna:
+ * Max frec conversion DAC es 1us -> hago 614 muestras para tener periodo 614us
+ *
+ * Para llegar de 0 a 512 en 307 muestras -> voy a tener saltos de 1.667
+ *
+ * RESOLUCION : 5.3mV
+ * @note Como debo hacer saltos enteros, trunco a enteros
  */
 void createSignal(void)
 {
@@ -144,14 +142,9 @@ void createSignal(void)
     while (i < 614)
     {
         if (i <= 307) // primer rampa
-            signal[i] = (512 + i) << 6;
+            signal[i] = ((uint32_t)(512 + i * 1.667)) << 6;
         else // segunda rampa
-            signal[i] = (21 + i) << 6;
-
-        if ((i % 2) == 0) // para los pares hago aumento en 1
-            i++;
-        else // para los impares aumento en 2
-            i = i + 2;
+            signal[i] = ((uint32_t)(i * 1.667)) << 6;
     }
 }
 
@@ -171,8 +164,7 @@ void configEXTI(void)
 // config adc para que que convierta a maximo rate con burst mode de forma continua, comienza apagado
 void configADC(void)
 {
-    // cclk=80MHz -> pclk=20MHz -> max adcclk=13MHz (maneja internamente los drivers)
-    ADC_Init(200000);
+    ADC_Init(32000); // aunque pclk=20MHz los drivers manejan internamente
     ADC_ChannelEnable(ADC_CHANNEL_0);
     ADC_PinConfig(ADC_CHANNEL_0);
     ADC_BurstEnable();
@@ -188,31 +180,8 @@ void configDAC(void)
     dacCfgON.dmaCounter = ENABLE;
     dacCfgON.dmaRequest = ENABLE;
     dacCfgON.doubleBuffer = DISABLE;
-    DAC_CONVERTER_CFG_T dacCfgOFF;
-    dacCfgON.dmaCounter = DISABLE;
-    dacCfgON.dmaRequest = DISABLE;
-    dacCfgON.doubleBuffer = DISABLE;
-
-    switch (state)
-    {
-    case ADC_2_MEM:
-    {
-        DAC_ConfigDAConverterControl(&dacCfgOFF);
-        break;
-    }
-    case ADC_2_DAC:
-    case WAVE_FORM_2_DAC:
-    {
-        DAC_ConfigDAConverterControl(&dacCfgON);
-        DAC_SetDMATimeOut(21);
-        // pido dato cada 1us (max conversion rate de dac)
-        // 1us = ticks / pclk => ticks = 1us * pclk = 20
-        break;
-    }
-
-    default:
-        break;
-    }
+    DAC_ConfigDAConverterControl(&dacCfgON); // luego habilito canal de DMA
+    // DAC_SetDMATimeOut(20); // seteo en estado (main)
 }
 
 /**
