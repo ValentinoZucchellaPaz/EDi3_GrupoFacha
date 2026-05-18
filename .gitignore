@@ -23,6 +23,7 @@ documentacion placa/
 *.ppt
 *.pptx
 *.odp
+*.docx
 
 # Binarios y archivos de salida
 *.elf
