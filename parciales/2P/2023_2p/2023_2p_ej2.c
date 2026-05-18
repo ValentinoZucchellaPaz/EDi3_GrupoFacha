@@ -247,7 +247,7 @@ void configDMA(GPDMA_LLI_T *lli_adc_a_bank0, GPDMA_LLI_T *lli_bank0_a_dac, GPDMA
     ch2Cfg_waveform2dac.dst.width = GPDMA_HALFWORD;
     ch2Cfg_waveform2dac.dst.increment = DISABLE;
     ch2Cfg_waveform2dac.srcMemAddr = (uint32_t)signal;
-    ch2Cfg_waveform2dac.dstMemAddr = (uint32_t)&LPC_DAC->DACR;
+    ch2Cfg_waveform2dac.dstMemAddr = (uint32_t)&LPC_DAC->DACR; // este valor se ignore y va a usar el de dstConn
     ch2Cfg_waveform2dac.dstConn = GPDMA_DAC;
     ch2Cfg_waveform2dac.intTC = DISABLE;
     ch2Cfg_waveform2dac.intErr = DISABLE;

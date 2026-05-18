@@ -1,33 +1,33 @@
 /**
- * 	Se tienen tres bloques de datos de 4KBytes de longitud cada uno en el cual se han guardado tres formas de onda.
- * Cada muestra de la onda es un valor de 32 bits que se ha capturado desde el ADC. Las direcciones de inicio de cada bloque son representadas por macros del estilo DIRECCION_BLOQUE_N, con N=0,1,2.
- * Se pide que, usando DMA y DAC se genere una forma de onda por la salida analógica de la LPC1769.
- * La forma de onda cambiará en función de una interrupción externa conectada a la placa de la siguiente manera:
- * • 1er interrupción: Forma de onda almacenada en bloque 0, con frecuencia de señal de 60[KHz].
- * • 2da interrupción: Forma de onda almacenada en bloque 1 con frecuencia de señal de 120[KHz].
- * • 3ra interrupción: Forma de onda almacenada en bloque 0 y bloque 2 (una a continuación de la otra) con frecuencia de señal de 450[KHz].
- * • 4ta interrupción: Vuelve a comenzar con la forma de onda del bloque 0.
- * En cada caso se debe utilizar el menor consumo de energía posible del DAC.
- *
- * RAZONAMIENTO :
- *
- * HAY 1K MUESTRAS por señal, y solo debo considerar los primeros 16bits ya que el resto es el resto del registro del adc.
- * Cuando debo sacar 2 formas de onda, hago 2 transferencias de adc con lli (entrelazadas), primero bloque 0 luego bloque 2 y repito
- *
- * Frecuencias de DAC :
- *
- * Nyquist, saco 2 muestras por periodo
- * dma_trigger = ticks / PCLK → ticks = dma_trigger * PCLK
- *
- * 1- 60kHz → saco a 120kHz → pido muestra cada 8.333 us
- * DAC_SetDMATimeOut(208); -> 8.32us -> 120.2kHz
- * 2- 120kHz → saco a 240kHz → pido muestra cada 4.167 us
- * DAC_SetDMATimeOut(104); -> 4.16us -> 240.4kHz
- * 3- 450kHz → saco a 900kHz → pido muestra cada 1.1 us
- * DAC_SetDMATimeOut(28); -> 1.12us -> 892kHz
- *
- * Para 1. y 2. debo usar BIAS=1 => bajo consumo 350uA max frec 400kHz -> 2.5us max
- * Para 3. debo usar BIAS=0 => alto consumo 700uA max frec 1MHz -> 1us max
+    Se tienen tres bloques de datos de 4KBytes de longitud cada uno en el cual se han guardado tres formas de onda.
+  Cada muestra de la onda es un valor de 32 bits que se ha capturado desde el ADC. Las direcciones de inicio de cada bloque son representadas por macros del estilo DIRECCION_BLOQUE_N, con N=0,1,2.
+  Se pide que, usando DMA y DAC se genere una forma de onda por la salida analógica de la LPC1769.
+  La forma de onda cambiará en función de una interrupción externa conectada a la placa de la siguiente manera:
+  • 1er interrupción: Forma de onda almacenada en bloque 0, con frecuencia de señal de 60[KHz].
+  • 2da interrupción: Forma de onda almacenada en bloque 1 con frecuencia de señal de 120[KHz].
+  • 3ra interrupción: Forma de onda almacenada en bloque 0 y bloque 2 (una a continuación de la otra) con frecuencia de señal de 450[KHz].
+  • 4ta interrupción: Vuelve a comenzar con la forma de onda del bloque 0.
+  En cada caso se debe utilizar el menor consumo de energía posible del DAC.
+
+  RAZONAMIENTO :
+
+  HAY 1K MUESTRAS por señal, y solo debo considerar los primeros 16bits ya que el resto es el resto del registro del adc.
+  Cuando debo sacar 2 formas de onda, hago 2 transferencias de adc con lli (entrelazadas), primero bloque 0 luego bloque 2 y repito
+
+  Frecuencias de DAC :
+
+  Nyquist, saco 2 muestras por periodo
+  dma_trigger = ticks / PCLK → ticks = dma_trigger * PCLK
+
+  1- 60kHz → saco a 120kHz → pido muestra cada 8.333 us
+  DAC_SetDMATimeOut(208); -> 8.32us -> 120.2kHz
+  2- 120kHz → saco a 240kHz → pido muestra cada 4.167 us
+  DAC_SetDMATimeOut(104); -> 4.16us -> 240.4kHz
+  3- 450kHz → saco a 900kHz → pido muestra cada 1.1 us
+  DAC_SetDMATimeOut(28); -> 1.12us -> 892kHz
+
+  Para 1. y 2. debo usar BIAS=1 => bajo consumo 350uA max frec 400kHz -> 2.5us max
+  Para 3. debo usar BIAS=0 => alto consumo 700uA max frec 1MHz -> 1us max
  */
 
 #include "LPC17xx.h"
@@ -147,13 +147,15 @@ void EXTI_IRQHandler(void)
         case ESPERA:
         {
             estado = ONDA0;
-            confDAC();
             break;
         }
         case ONDA0:
         {
             estado = ONDA1;
             confDAC(); // DAC_SetDMATimeOut(208); -> 8.32us -> 120.2kHz
+            GPDMA_ChannelGracefulStop(GPDMA_CH_1);
+            GPDMA_ChannelGracefulStop(GPDMA_CH_2);
+            GPDMA_ChannelStart(GPDMA_CH_0);
             break;
         }
 
@@ -161,6 +163,9 @@ void EXTI_IRQHandler(void)
         {
             estado = ONDA0y2;
             DAC_SetDMATimeOut(104); // -> 4.16us -> 240.4kHz
+            GPDMA_ChannelGracefulStop(GPDMA_CH_0);
+            GPDMA_ChannelGracefulStop(GPDMA_CH_2);
+            GPDMA_ChannelStart(GPDMA_CH_1);
             break;
         }
         case ONDA0y2:
@@ -168,6 +173,9 @@ void EXTI_IRQHandler(void)
             estado = ONDA0;
             DAC_SetBias(DAC_700uA);
             DAC_SetDMATimeOut(28); // -> 1.12us -> 892kHz
+            GPDMA_ChannelGracefulStop(GPDMA_CH_0);
+            GPDMA_ChannelGracefulStop(GPDMA_CH_1);
+            GPDMA_ChannelStart(GPDMA_CH_2);
             break;
         }
 
