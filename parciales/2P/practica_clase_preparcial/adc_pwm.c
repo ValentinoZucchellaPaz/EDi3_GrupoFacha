@@ -27,12 +27,12 @@ int main(void)
         if (calcPromedio == 1)
         {
             valorProm = avg();
-            if (valorProm <= 1241)
+            if (valorProm <= 1241) // 1V
             {
                 stopPWM();
                 GPIO_ClearPins(0, 1);
             }
-            else if (valorProm <= 2482)
+            else if (valorProm <= 2482) // 2V
             {
                 float valorTension = (valorProm * 3.3 / 4096.0);
                 duty = (uint32_t)(50.0 + (valorTension - 1) * 40); // 1V -> 50%; 2V -> 90%;
@@ -61,8 +61,9 @@ void config_adc(void)
     ADC_BurstDisable();
     ADC_PinConfig(ADC_CHANNEL_0);
     ADC_IntEnable(ADC_CHANNEL_0);
-    ADC_StartCmd(ADC_START_ON_MAT01); // conf para que timer haga trigger cada 30s
-    ADC_PowerUp();                    // encendemos el ADC
+    ADC_StartCmd(ADC_START_ON_MAT01);          // conf para que timer haga trigger cada 30s
+    ADC_EdgeStartConfig(ADC_START_ON_FALLING); // MAT0.1 _ _ _|---|_ _ _|---|
+    ADC_PowerUp();                             // encendemos el ADC
 }
 
 /**
@@ -73,7 +74,7 @@ void config_timer0_adc(void)
 
     TIM_TIMERCFG_T tim;
     tim.prescaleOpt = TIM_US;
-    tim.prescaleValue = 1000000;
+    tim.prescaleValue = 1000000; // TC aumenta cada 1s
 
     TIM_InitTimer(LPC_TIM0, &tim);
     TIM_MATCHCFG_T matchcfg;
@@ -134,7 +135,7 @@ void stopPWM(void)
 // Calcula el promedio de los elementos del array
 float avg(void)
 {
-    int p = 0;
+    float p = 0;
     for (uint32_t i = 0; i < 3; i++)
     {
         p += arr[i];
@@ -150,7 +151,7 @@ void ADC_IRQHandler(void)
     static int counter = 0;
     if (ADC_GlobalGetStatus(ADC_DATA_DONE))
     {
-        arr[counter] = (ADC_GlobalGetData() >> 4) & 0xFFF; // array guardando las conversiones
+        arr[counter] = ADC_GlobalGetData(); // array guardando las conversiones
         counter++;
         if (counter == 4)
         {
@@ -162,6 +163,9 @@ void ADC_IRQHandler(void)
 
 /**
  * @brief hace el toggle manual de P0.0 para tener el pwm con `duty` (match1) y periodo 50us -> frec 20kHz (match0)
+ * _____|--|_____|--|_____
+ * _____|__|-----|__|-----
+ * ___MR0_MR1
  */
 void TIM1_IRQHandler(void)
 {
