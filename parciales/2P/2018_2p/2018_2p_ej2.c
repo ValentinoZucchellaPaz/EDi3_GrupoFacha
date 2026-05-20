@@ -14,8 +14,8 @@ void configDMA(void)
         .dstConn = TIM_MAT0_0_P3_25};
     GPDMA_Init();
     GPDMA_SetupChannel(&chCfg);
-    GPDMA_ChannelStart(GPDMA_CH_0);
     LPC_GPDMACH0->DMACCDestAddr = 0x10002800;
+    GPDMA_ChannelStart(GPDMA_CH_0);
 }
 
 void configTimer(void)

@@ -6,7 +6,8 @@
 #define PATTERN2_MEMADDR 0x2007C200 // 512 posiciones mas
 
 volatile uint8_t *pattern1 = (uint8_t *)PATTERN1_MEMADDR;
-volatile uint8_t *pattern2 = (uint8_t *)PATTERN2_MEMADDR;
+// volatile uint8_t *pattern2 = (uint8_t *)PATTERN2_MEMADDR;
+volatile uint8_t *pattern2 = (uint8_t *)PATTERN1_MEMADDR + 512;
 
 volatile uint8_t pulsador = 0;
 

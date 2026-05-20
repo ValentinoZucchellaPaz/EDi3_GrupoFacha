@@ -29,16 +29,17 @@ void configDMA(GPDMA_LLI_T *lliptr)
     dmaCfg.src.width = GPDMA_BYTE;
     dmaCfg.src.burst = GPDMA_BSIZE_1;
     dmaCfg.src.increment = ENABLE;
-    dmaCfg.dst.width = GPDMA_WORD;
+    dmaCfg.dst.width = GPDMA_WORD; // aca podria hacer byte tmb
     dmaCfg.dst.burst = GPDMA_BSIZE_1;
     dmaCfg.dst.increment = DISABLE;
     dmaCfg.srcMemAddr = (uint32_t)arr;
-    dmaCfg.dstMemAddr = (uint32_t)&LPC_GPIO0->FIOPIN;
+    // dmaCfg.dstMemAddr = (uint32_t)&LPC_GPIO0->FIOPIN;
     dmaCfg.srcConn = GPDMA_MAT0_0;
     dmaCfg.dstConn = 0;
 
     GPDMA_Init();
     GPDMA_SetupChannel(&dmaCfg);
+    LPC_GPDMACH0->DMACCDestAddr = (uint32_t)LPC_GPIO0->FIOPIN;
     GPDMA_ChannelStart(GPDMA_CH_0);
 }
 
@@ -46,7 +47,7 @@ void configTimer0(void)
 {
     TIM_TIMERCFG_T timCfg;
     timCfg.prescaleOpt = TIM_US;
-    timCfg.prescaleValue = 2499; // -> 1match = 0.1ms
+    timCfg.prescaleValue = 100; // -> 1match = 0.1ms
 
     TIM_MATCHCFG_T matchCfg;
     matchCfg.channel = 0;
@@ -71,8 +72,6 @@ int main(void)
     // inicializo arr (representa las 4 ondas en cada instante)
     for (int i = 0; i < 16; i++)
         arr[i] = i;
-
-    return 1;
 
     GPDMA_LLI_T lli;
     lli.srcAddr = (uint32_t)arr;

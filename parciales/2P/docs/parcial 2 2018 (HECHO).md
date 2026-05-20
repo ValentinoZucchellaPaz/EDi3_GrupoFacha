@@ -20,4 +20,4 @@ A modo de ejemplo, realice un diagrama temporal de las dos primeras tramas recib
 
 Considerando que se tiene un bloque de datos comprendidos entre las posiciones de memorias, dirección inicial= 0x10000800 a la dirección final= 0x10001000 ambas inclusive y se desea trasladar este bloque de datos una nueva zona de memoria comprendida entre la dirección inicial= 0x10002800 y la dirección Final=0x10003000 (en el mismo orden). Teniendo en cuenta además que los datos contenidos dentro de la zona de memoria son de 16 bits (AHB Master endianness configuration - por defecto) y que estos deben moverse de a uno (1) en cada evento de DMA, se sincronizará la transmisión con evento de match0 del timer1.
 
-Se pide que Enumere y explique los puntos a tener en cuenta para configurar correctamente el controlador DMA.\_
+Se pide que Enumere y explique los puntos a tener en cuenta para configurar correctamente el controlador DMA.

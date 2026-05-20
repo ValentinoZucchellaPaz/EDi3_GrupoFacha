@@ -10,7 +10,7 @@ Durante operación normal se debe generar por el DAC la forma de onda mencionada
 Cuando interrumpe una extint conectada a un pin, el ADC configurado debe completar el ciclo de conversión que estaba realizando, y ser detenido, a continuación se comienzan a sacar las muestras del ADC por el DAC utilizando DMA y desde las posiciones de memoria originales.
 Cuando interrumpe nuevamente en el mismo pin, se vuelve a repetir la señal del DAC generada por la forma de onda de wave_form previamente almacenada y se arranca de nuevo la conversión de datos del adc. Se alterna así entre los dos estados del sistema con cada interrupción externa.
 Suponer una frecuencia de core cclk de 80 Mhz. El código debe estar debidamente comentado.
-![Pasted image 20260517223931.png](/parciales/2P/docs/Pasted%20image%2020260517224208.png)
+![Pasted image 20260517223931.png](/parciales/2P/docs/Pasted%20image%2020260517223931.png)
 
 ## 3. HECHO
 

@@ -17,32 +17,19 @@ volatile uint16_t señal2[N];
 volatile uint8_t idx1 = 0;
 volatile uint8_t idx2 = 0;
 
-void confTimer(void)
-{
-    TIM_TIMERCFG_T timCfg = {.prescaleOpt = TIM_US, .prescaleValue = 1};
-    TIM_MATCHCFG_T matchCfg = {
-        .channel = TIM_MATCH_0,
-        .extOpt = TIM_TOGGLE,
-        .resetEn = ENABLE,
-        .matchValue = 12};
-
-    TIM_InitTimer(LPC_TIM0, &timCfg);
-    TIM_ConfigMatch(LPC_TIM0, &matchCfg);
-    TIM_Enable(LPC_TIM0);
-}
-
 void confADC(void)
 {
-    ADC_Init(200000); // max frec posible, frec de muestreo se lo doy con timer (startCmd)
+    // muestreo con frec propuesta, interrumpo
+    // en int agrego dato a array correspondiente y cambio de canal, comienzo nueva conv
+    ADC_Init(40000);
     ADC_BurstDisable();
     ADC_PinConfig(ADC_CHANNEL_2);
     ADC_PinConfig(ADC_CHANNEL_4);
     ADC_ChannelEnable(ADC_CHANNEL_2);
-    ADC_ChannelEnable(ADC_CHANNEL_4);
-    ADC_StartCmd(TIM_MAT0_0_P3_25);
     ADC_EdgeStartConfig(ADC_START_ON_FALLING);
     ADC_IntEnable(ADC_INT_CH2);
     ADC_IntEnable(ADC_INT_CH4);
+    ADC_StartCmd(ADC_START_NOW);
     ADC_PowerUp();
 }
 
@@ -52,11 +39,17 @@ void ADC_IRQHandler(void)
     {
         señal1[idx1] = ADC_ChannelGetData(ADC_CHANNEL_2);
         idx1 = (idx1 + 1) % N;
+        ADC_ChannelDisable(ADC_CHANNEL_2);
+        ADC_ChannelEnable(ADC_CHANNEL_4);
+        ADC_StartCmd(ADC_START_NOW);
     }
     if (ADC_ChannelGetStatus(ADC_CHANNEL_4, ADC_DATA_DONE) == SET)
     {
         señal2[idx2] = ADC_ChannelGetData(ADC_CHANNEL_4);
         idx2 = (idx2 + 1) % N;
+        ADC_ChannelDisable(ADC_CHANNEL_4);
+        ADC_ChannelEnable(ADC_CHANNEL_2);
+        ADC_StartCmd(ADC_START_NOW);
     }
 }
 

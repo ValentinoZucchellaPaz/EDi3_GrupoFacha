@@ -36,25 +36,7 @@ Se pide que Enumere y explique los puntos a tener en cuenta para configurar corr
 
 Las transmisiones memoria a memoria son continuas, el GPDMA va a transferir todo cuando le de start y no puedo decirle que en cada evento de match dispare una nueva transferencia.
 
-Si quiero sincronizar cada transferencia con el timer haciendo una transf M2M, puedo hacer una interrupcion de match0 que comience la transferencia
-
-El DMA se debe configurar de la siguiente forma
-
-1.  Encender modulo GPDMA en PCONP : GPDMA_Init();
-2.  Configurar canal de transmisión: GPDMA_SetupChannel(const GPDMA_Channel_CFG_T\* dmaCfg);
-    1. Se van a transferir 512 bytes de memoria con ancho de 16bits se harán 256 transferencias (pero hago size 1 xq se van a mover de a 1 los datos)
-    2. Selecciono el numero de canal: 0
-    3. Selecciono el tamaño de la transferencia: 1
-    4. Selecciono el tamaño de la palabra a transferis HALFWORD (16bits)
-    5. Selecciono el tipo de transferencia: memoria a memroria
-    6. Selecciono direccion de comienzo y destino: 0x10000800 -> 0x10002800 (estos valores se van a reconfiguar cuando se lance una int de timer, manejado por el isr del timer)
-    7. Hago la struct Endpoint para src y dst: especifico width (halfword), increment (enable) y burst (1 por el ejercicio)
-    8. No es necesaria una LLI
-3.  Configuro el Timer y su ISR:
-    1. En ISR channel start para comenzar transferencia.
-
-Otra forma puede ser:
-hacer transferencia m2p, configurando el trigger con el toggle del MAT0.1, y la direccion de memoria que tengo. El unico problema es que se deben usar los punteros (LPC_GPDMA->DestAddr) y no los drivers por restricciones de diseño
+Para lograrlo debo hacer transferencia m2p, configurando el trigger con el toggle del MAT0.1, y la direccion de memoria que tengo. El unico problema es que se deben usar los punteros (LPC_GPDMA->DestAddr) y no los drivers por restricciones de diseño
 El DMA se debe configurar de la siguiente forma
 
 1.  Encender modulo GPDMA en PCONP : GPDMA_Init();
@@ -72,3 +54,22 @@ El DMA se debe configurar de la siguiente forma
     1. Configuro prescaler y match0
     2. hago que match0 haga reset y toggle del pin externo (MAT0.0)
     3. enciendo
+
+Otra forma puede ser:
+
+Si quiero sincronizar cada transferencia con el timer haciendo una transf M2M, puedo hacer una interrupcion de match0 que comience la transferencia
+
+El DMA se debe configurar de la siguiente forma
+
+1.  Encender modulo GPDMA en PCONP : GPDMA_Init();
+2.  Configurar canal de transmisión: GPDMA_SetupChannel(const GPDMA_Channel_CFG_T\* dmaCfg);
+    1. Se van a transferir 512 bytes de memoria con ancho de 16bits se harán 256 transferencias (pero hago size 1 xq se van a mover de a 1 los datos)
+    2. Selecciono el numero de canal: 0
+    3. Selecciono el tamaño de la transferencia: 1
+    4. Selecciono el tamaño de la palabra a transferis HALFWORD (16bits)
+    5. Selecciono el tipo de transferencia: memoria a memroria
+    6. Selecciono direccion de comienzo y destino: 0x10000800 -> 0x10002800 (estos valores se van a reconfiguar cuando se lance una int de timer, manejado por el isr del timer)
+    7. Hago la struct Endpoint para src y dst: especifico width (halfword), increment (enable) y burst (1 por el ejercicio)
+    8. No es necesaria una LLI
+3.  Configuro el Timer y su ISR:
+    1. En ISR channel start para comenzar transferencia.

@@ -2,7 +2,7 @@
 
 Se desea 4 ondas cuadradas de distinta frecuencia por los pines P0.0-P0.3, por lo que se pide que desarrolle un programa que utilice el módulo GPDMA para generar el patrón de ondas mostradas de manera simultanea.
 
-![ondas](/ejercicios/integrador_2p_trujillo/ondas_ej1_integrador_trujillo.png)
+![ondas](/parciales/2P/integrador_2p_trujillo/ondas_ej1_integrador_trujillo.png)
 
 - La secuencia debe estar almacenada en memoria, en la dirección 0x2007C000
 - El periodo de cada una de las 4 ondas es 1, 2, 4 y 8 [ms] respectivamente.
